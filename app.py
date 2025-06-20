@@ -1,7 +1,10 @@
+# IISログアップロード→解析→Excel出力までを行うWebアプリ（Streamlitベース）
+
 import streamlit as st
 import pandas as pd
 import re
 import io
+import zipfile
 from datetime import datetime
 
 def parse_iis_log(log_text):
@@ -29,21 +32,42 @@ def parse_iis_log(log_text):
     df_result["Account"] = df_result["_RequestID"].str.extract(r"@(.+)$")
     return df_result
 
-# Streamlit UI
-st.title("IISログ解析ツール")
-st.write("IISログファイル（テキスト形式）をアップロードしてください。必要なフィールドを抽出してExcelに出力します。")
+st.set_page_config(page_title="IISログ解析ツール", layout="wide")
+st.title("📊 IISログ解析ツール")
+st.markdown("<span style='color:blue; font-size:16px; font-weight:bold;'>IISログファイルをアップロードし、主要項目を抽出してExcel出力します</span>", unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader("ログファイルを選択", type=["log", "txt"]) 
+uploaded_file = st.file_uploader("IISログファイルをアップロード（.log, .txt, .zip対応）", type=["log", "txt", "zip"])
 
-if uploaded_file is not None:
-    log_text = uploaded_file.read().decode("utf-8")
-    df_output = parse_iis_log(log_text)
+if uploaded_file:
+    st.markdown(f"<span style='color:green; font-size:18px; font-weight:bold;'>✔️ ファイル '{uploaded_file.name}' がアップロードされました</span>", unsafe_allow_html=True)
 
-    st.success("ログを解析しました。下記に内容を表示します。")
-    st.dataframe(df_output)
+    content = ""
+    if uploaded_file.name.endswith(".zip"):
+        with zipfile.ZipFile(uploaded_file, "r") as zip_ref:
+            all_text = []
+            for file_name in zip_ref.namelist():
+                with zip_ref.open(file_name) as f:
+                    text = f.read().decode("utf-8", errors="ignore")
+                    all_text.append(text)
+            content = "\n".join(all_text)
+    else:
+        content = uploaded_file.read().decode("utf-8", errors="ignore")
 
-    # Excel出力
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df_output.to_excel(writer, sheet_name='ParsedLog', index=False)
-    st.download_button("Excelファイルをダウンロード", data=output.getvalue(), file_name="parsed_iis_log.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    with st.spinner("🔄 ログ解析中..."):
+        df_output = parse_iis_log(content)
+        st.session_state["df"] = df_output
+
+if "df" in st.session_state:
+    df = st.session_state["df"]
+    if not df.empty:
+        st.success(f"{len(df)} 行のログを解析しました。下記に内容を表示します。")
+        st.dataframe(df, use_container_width=True)
+
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, sheet_name='ParsedLog', index=False)
+            worksheet = writer.sheets['ParsedLog']
+            worksheet.autofilter(0, 0, len(df), len(df.columns) - 1)
+        st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name="iis_log_output.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    else:
+        st.warning("解析結果がありません。ログファイルの内容を確認してください。")
