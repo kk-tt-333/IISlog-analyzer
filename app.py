@@ -21,13 +21,13 @@ st.markdown("""
 # ユーザー入力
 # ----------------------------
 uploaded_file = st.file_uploader("ZIPログファイルをアップロード", type="zip")
-target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1234567, 1092722")
+target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1081029, 1092722")
 export_name = st.text_input("Excel出力ファイル名（.xlsxは不要）", value="parsed_log")
 
 # ----------------------------
 # ログ解析関数
 # ----------------------------
-def parse_iis_log(log_text):
+def parse_iis_log(log_text, source_file):
     lines = log_text.strip().split('\n')
     field_lines = [line for line in lines if line.startswith("#Fields:")]
     if not field_lines:
@@ -49,7 +49,6 @@ def parse_iis_log(log_text):
     if not all(col in df.columns for col in required_columns):
         return pd.DataFrame()
 
-    df_result = pd.DataFrame()
     try:
         df_result = pd.DataFrame({
             "datetime": df["date"] + " " + df["time"],
@@ -64,7 +63,8 @@ def parse_iis_log(log_text):
             "_RequestID": df["_RequestID"],
             "True-Client-IP": df["True-Client-IP"],
             "_X-SessionID": df["_X-SessionID"],
-            "s-computername": df["s-computername"]
+            "s-computername": df["s-computername"],
+            "logfile": source_file
         })
     except Exception as e:
         st.error(f"データ整形中にエラーが発生しました: {e}")
@@ -83,34 +83,32 @@ if uploaded_file and st.button("▶ 解析実行"):
                 if file_name.endswith('.log') or file_name.endswith('.txt'):
                     with zip_ref.open(file_name) as f:
                         text = f.read().decode("utf-8", errors="ignore")
-                        df = parse_iis_log(text)
+                        df = parse_iis_log(text, file_name)
                         if not df.empty:
                             all_dfs.append(df)
 
         df_all = pd.concat(all_dfs, ignore_index=True) if all_dfs else pd.DataFrame()
 
         if not df_all.empty:
-            # Accountフィルタ処理
             accounts = [a.strip() for a in target_input.split(',') if a.strip()] if target_input else []
             if accounts:
                 df_all = df_all[df_all["Account"].isin(accounts)]
 
             st.success(f"{len(df_all)} 件のレコードが見つかりました。")
 
-            # 表示用スタイル適用
-            styled_df = df_all.copy()
-            styled_df["time-taken"] = styled_df["time-taken"].apply(lambda x: f"**{x}**")
-            styled_df = styled_df.style.set_properties(subset=["time-taken"], **{
-                'font-weight': 'bold',
-                'border': '2px solid black'
-            }).format({"cs(Referer)": lambda x: x})  # ハイパーリンク除去
+            st.dataframe(df_all.head(5), use_container_width=True)
 
-            st.dataframe(styled_df, use_container_width=True)
-
-            # Excel出力
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 df_all.to_excel(writer, index=False, sheet_name="ParsedLog")
+                worksheet = writer.sheets["ParsedLog"]
+                worksheet.autofilter(0, 0, df_all.shape[0], df_all.shape[1] - 1)
+                for col_num, value in enumerate(df_all.columns):
+                    if value == "cs(Referer)":
+                        worksheet.write_url(0, col_num, None, string=value)
+                time_taken_col = df_all.columns.get_loc("time-taken")
+                time_format = writer.book.add_format({"bold": True, "border": 2})
+                worksheet.set_column(time_taken_col, time_taken_col, None, time_format)
             st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name=f"{export_name}.xlsx")
         else:
             st.warning("解析結果が空です。ログ構造または対象Accountをご確認ください。")
