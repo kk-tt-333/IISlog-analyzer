@@ -31,7 +31,6 @@ if uploaded_file:
 target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1234567, 1092722")
 export_name = st.text_input("出力ファイル名（拡張子不要）", value="parsed_log")
 file_type = st.radio("出力形式を選択", ["Excel (.xlsx)", "CSV (.csv)"], captions=["Account指定している場合こちら", "全件出力の場合はこちら"])
-)
 
 # ----------------------------
 # ログ解析関数
