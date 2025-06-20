@@ -7,6 +7,7 @@ import zipfile
 import io
 import re
 import xlsxwriter
+import numpy as np
 
 # ----------------------------
 # ページ設定
@@ -100,15 +101,16 @@ if uploaded_file and st.button("▶ 解析実行"):
             st.dataframe(df_all.head(5), use_container_width=True)
 
             output = io.BytesIO()
-            workbook = xlsxwriter.Workbook(output, {'constant_memory': True})
+            workbook = xlsxwriter.Workbook(output, {'constant_memory': True, 'nan_inf_to_errors': True})
             worksheet = workbook.add_worksheet("IISログ解析結果")
 
             for col_num, value in enumerate(df_all.columns):
-                worksheet.write(0, col_num, value)
+                worksheet.write(0, col_num, str(value))
 
             for row_num, row in enumerate(df_all.itertuples(index=False), start=1):
                 for col_num, cell in enumerate(row):
-                    worksheet.write(row_num, col_num, cell)
+                    val = "" if pd.isnull(cell) or isinstance(cell, float) and (np.isnan(cell) or np.isinf(cell)) else str(cell)
+                    worksheet.write(row_num, col_num, val)
 
             worksheet.autofilter(0, 0, len(df_all), len(df_all.columns) - 1)
 
