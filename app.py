@@ -104,8 +104,8 @@ if uploaded_file and st.button("▶ 解析実行"):
                 worksheet = writer.sheets["ParsedLog"]
                 worksheet.autofilter(0, 0, df_all.shape[0], df_all.shape[1] - 1)
                 time_taken_col = df_all.columns.get_loc("time-taken")
-                time_format = writer.book.add_format({"bold": True, "border": 2})
-                worksheet.set_column(time_taken_col, time_taken_col, None, time_format)
+                border_format = writer.book.add_format({"border": 2})
+                worksheet.set_column(time_taken_col, time_taken_col, None, border_format)
             st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name=f"{export_name}.xlsx")
         else:
             st.warning("解析結果が空です。ログ構造または対象Accountをご確認ください。")
