@@ -37,25 +37,22 @@ def parse_iis_log(log_text):
 
 st.set_page_config(page_title="IISログ解析ツール", layout="wide")
 st.title("📊 IISログ解析ツール")
-st.markdown("<span style='color:blue; font-size:16px; font-weight:bold;'>IISログファイルをアップロードし、主要項目を抽出してExcel出力します</span>", unsafe_allow_html=True)
+st.markdown("<span style='color:blue; font-size:16px; font-weight:bold;'>ZIP形式のIISログファイルをアップロードし、主要項目を抽出してExcel出力します</span>", unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader("IISログファイルをアップロード（.log, .txt, .zip対応）", type=["log", "txt", "zip"])
+uploaded_file = st.file_uploader("IISログZIPファイルをアップロード（.zipのみ）", type=["zip"])
 
 if uploaded_file:
     st.markdown(f"<span style='color:green; font-size:18px; font-weight:bold;'>✔️ ファイル '{uploaded_file.name}' がアップロードされました</span>", unsafe_allow_html=True)
 
     content = ""
-    if uploaded_file.name.endswith(".zip"):
-        with zipfile.ZipFile(uploaded_file, "r") as zip_ref:
-            all_text = []
-            for file_name in zip_ref.namelist():
-                if file_name.endswith('.log') or file_name.endswith('.txt'):
-                    with zip_ref.open(file_name) as f:
-                        text = f.read().decode("utf-8", errors="ignore")
-                        all_text.append(text)
-            content = "\n".join(all_text)
-    else:
-        content = uploaded_file.read().decode("utf-8", errors="ignore")
+    with zipfile.ZipFile(uploaded_file, "r") as zip_ref:
+        all_text = []
+        for file_name in zip_ref.namelist():
+            if file_name.endswith('.log') or file_name.endswith('.txt'):
+                with zip_ref.open(file_name) as f:
+                    text = f.read().decode("utf-8", errors="ignore")
+                    all_text.append(text)
+        content = "\n".join(all_text)
 
     with st.spinner("🔄 ログ解析中..."):
         df_output = parse_iis_log(content)
