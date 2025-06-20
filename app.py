@@ -21,7 +21,7 @@ st.markdown("""
 # ユーザー入力
 # ----------------------------
 uploaded_file = st.file_uploader("ZIPログファイルをアップロード", type="zip")
-target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1234567, 1092722")
+target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1081029, 1092722")
 export_name = st.text_input("Excel出力ファイル名（.xlsxは不要）", value="parsed_log")
 
 # ----------------------------
@@ -59,12 +59,12 @@ def parse_iis_log(log_text):
             "time-taken": df["time-taken"],
             "cs(User-Agent)": df["cs(User-Agent)"],
             "cs(Referer)": df["cs(Referer)"],
-            "s-computername": df["s-computername"],
             "cs-host": df["cs-host"],
             "sc-status": df["sc-status"],
             "_RequestID": df["_RequestID"],
             "True-Client-IP": df["True-Client-IP"],
-            "_X-SessionID": df["_X-SessionID"]
+            "_X-SessionID": df["_X-SessionID"],
+            "s-computername": df["s-computername"]
         })
     except Exception as e:
         st.error(f"データ整形中にエラーが発生しました: {e}")
@@ -96,6 +96,16 @@ if uploaded_file and st.button("▶ 解析実行"):
                 df_all = df_all[df_all["Account"].isin(accounts)]
 
             st.success(f"{len(df_all)} 件のレコードが見つかりました。")
+
+            # 表示用スタイル適用
+            styled_df = df_all.copy()
+            styled_df["time-taken"] = styled_df["time-taken"].apply(lambda x: f"**{x}**")
+            styled_df = styled_df.style.set_properties(subset=["time-taken"], **{
+                'font-weight': 'bold',
+                'border': '2px solid black'
+            }).format({"cs(Referer)": lambda x: x})  # ハイパーリンク除去
+
+            st.dataframe(styled_df, use_container_width=True)
 
             # Excel出力
             output = io.BytesIO()
