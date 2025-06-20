@@ -126,7 +126,7 @@ if st.session_state['df_all'] is not None:
         csv_output = io.BytesIO()
         df_all.to_csv(csv_output, index=False, encoding="utf-8-sig")
         st.download_button("⬇ CSVファイルをダウンロード", data=csv_output.getvalue(), file_name=f"{export_name}.csv")
-    st.session_state['is_processing'] = False, file_name=f"{export_name}.csv")
+        st.session_state['is_processing'] = False
 
     else:
         output = io.BytesIO()
@@ -148,4 +148,5 @@ if st.session_state['df_all'] is not None:
         workbook.close()
 
         st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name=f"{export_name}.xlsx")
-    st.session_state['is_processing'] = False, file_name=f"{export_name}.xlsx")
+        st.session_state['is_processing'] = False
+
