@@ -21,7 +21,7 @@ st.markdown("""
 # ユーザー入力
 # ----------------------------
 uploaded_file = st.file_uploader("ZIPログファイルをアップロード", type="zip")
-target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1081029, 1092722")
+target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1234567, 1092722")
 export_name = st.text_input("Excel出力ファイル名（.xlsxは不要）", value="parsed_log")
 
 # ----------------------------
