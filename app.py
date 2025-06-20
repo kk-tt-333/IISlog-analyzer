@@ -99,7 +99,7 @@ if uploaded_file and st.button("▶ 解析実行"):
             st.dataframe(df_all.head(5), use_container_width=True)
 
             output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            with pd.ExcelWriter(output, engine='xlsxwriter', options={'constant_memory': True}) as writer:
                 df_all.to_excel(writer, index=False, sheet_name="ParsedLog")
                 worksheet = writer.sheets["ParsedLog"]
                 worksheet.autofilter(0, 0, df_all.shape[0], df_all.shape[1] - 1)
