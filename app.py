@@ -31,6 +31,7 @@ if uploaded_file:
 target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1234567, 1092722")
 export_name = st.text_input("出力ファイル名（拡張子不要）", value="parsed_log")
 file_type = st.radio("出力形式を選択", ["Excel (.xlsx)", "CSV (.csv)"], captions=["Account指定している場合こちら", "全件出力の場合はこちら"])
+)
 
 # ----------------------------
 # ログ解析関数
@@ -86,9 +87,13 @@ def parse_iis_log(log_text, source_file):
 if 'df_all' not in st.session_state:
     st.session_state['df_all'] = None
 
-parse_trigger = st.button("▶ 解析実行", type="primary")
+if 'is_processing' not in st.session_state:
+    st.session_state['is_processing'] = False
+
+parse_trigger = st.button("▶ 解析実行", type="primary", disabled=st.session_state['is_processing'])
 
 if uploaded_file and parse_trigger:
+    st.session_state['is_processing'] = True
     with st.spinner("解析中..."):
         all_dfs = []
         with zipfile.ZipFile(uploaded_file, "r") as zip_ref:
@@ -121,6 +126,7 @@ if st.session_state['df_all'] is not None:
         csv_output = io.BytesIO()
         df_all.to_csv(csv_output, index=False, encoding="utf-8-sig")
         st.download_button("⬇ CSVファイルをダウンロード", data=csv_output.getvalue(), file_name=f"{export_name}.csv")
+    st.session_state['is_processing'] = False, file_name=f"{export_name}.csv")
 
     else:
         output = io.BytesIO()
@@ -138,7 +144,8 @@ if st.session_state['df_all'] is not None:
         worksheet.autofilter(0, 0, len(df_all), len(df_all.columns) - 1)
         time_taken_col = df_all.columns.get_loc("time-taken")
         cell_format = workbook.add_format({"bold": True, "border": 2})
-        worksheet.set_column(time_taken_col, cell_format)
+        worksheet.set_column(time_taken_col, time_taken_col, None, cell_format)
         workbook.close()
 
         st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name=f"{export_name}.xlsx")
+    st.session_state['is_processing'] = False, file_name=f"{export_name}.xlsx")
