@@ -6,6 +6,8 @@ import re
 import io
 import zipfile
 from datetime import datetime
+from pandas import ExcelWriter
+
 
 def parse_iis_log(log_text):
     lines = log_text.strip().split('\n')
@@ -32,6 +34,7 @@ def parse_iis_log(log_text):
     df_result["Account"] = df_result["_RequestID"].str.extract(r"@(.+)$")
     return df_result
 
+
 st.set_page_config(page_title="IISログ解析ツール", layout="wide")
 st.title("📊 IISログ解析ツール")
 st.markdown("<span style='color:blue; font-size:16px; font-weight:bold;'>IISログファイルをアップロードし、主要項目を抽出してExcel出力します</span>", unsafe_allow_html=True)
@@ -46,9 +49,10 @@ if uploaded_file:
         with zipfile.ZipFile(uploaded_file, "r") as zip_ref:
             all_text = []
             for file_name in zip_ref.namelist():
-                with zip_ref.open(file_name) as f:
-                    text = f.read().decode("utf-8", errors="ignore")
-                    all_text.append(text)
+                if file_name.endswith('.log') or file_name.endswith('.txt'):
+                    with zip_ref.open(file_name) as f:
+                        text = f.read().decode("utf-8", errors="ignore")
+                        all_text.append(text)
             content = "\n".join(all_text)
     else:
         content = uploaded_file.read().decode("utf-8", errors="ignore")
@@ -64,10 +68,10 @@ if "df" in st.session_state:
         st.dataframe(df, use_container_width=True)
 
         output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        with ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, sheet_name='ParsedLog', index=False)
             worksheet = writer.sheets['ParsedLog']
-            worksheet.autofilter(0, 0, len(df), len(df.columns) - 1)
+            worksheet.auto_filter.ref = worksheet.dimensions
         st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name="iis_log_output.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     else:
         st.warning("解析結果がありません。ログファイルの内容を確認してください。")
