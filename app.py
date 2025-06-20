@@ -66,19 +66,17 @@ uploaded_file = st.file_uploader("IISログZIPファイルをアップロード�
 if uploaded_file:
     st.markdown(f"<span style='color:green; font-size:18px; font-weight:bold;'>✔️ ファイル '{uploaded_file.name}' がアップロードされました</span>", unsafe_allow_html=True)
 
-    content = ""
+    all_dfs = []
     with zipfile.ZipFile(uploaded_file, "r") as zip_ref:
-        all_text = []
         for file_name in zip_ref.namelist():
             if file_name.endswith('.log') or file_name.endswith('.txt'):
                 with zip_ref.open(file_name) as f:
                     text = f.read().decode("utf-8", errors="ignore")
-                    all_text.append(text)
-        content = "\n".join(all_text)
-
-    with st.spinner("🔄 ログ解析中..."):
-        df_output = parse_iis_log(content)
-        st.session_state["df"] = df_output
+                    df_part = parse_iis_log(text)
+                    if not df_part.empty:
+                        all_dfs.append(df_part)
+    df_output = pd.concat(all_dfs, ignore_index=True) if all_dfs else pd.DataFrame()
+    st.session_state["df"] = df_output
 
 if "df" in st.session_state:
     df = st.session_state["df"]
