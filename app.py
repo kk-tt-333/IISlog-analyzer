@@ -98,14 +98,30 @@ if uploaded_file and st.button("▶ 解析実行"):
 
             st.dataframe(df_all.head(5), use_container_width=True)
 
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter', options={'constant_memory': True}) as writer:
-                df_all.to_excel(writer, index=False, sheet_name="ParsedLog")
-                worksheet = writer.sheets["ParsedLog"]
-                worksheet.autofilter(0, 0, df_all.shape[0], df_all.shape[1] - 1)
-                time_taken_col = df_all.columns.get_loc("time-taken")
-                time_format = writer.book.add_format({"bold": True, "border": 2})
-                worksheet.set_column(time_taken_col, time_taken_col, None, time_format)
-            st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name=f"{export_name}.xlsx")
-        else:
-            st.warning("解析結果が空です。ログ構造または対象Accountをご確認ください。")
+           output = io.BytesIO()
+        import xlsxwriter
+        
+        workbook = xlsxwriter.Workbook(output, {'constant_memory': True})
+        worksheet = workbook.add_worksheet("IIS生ログ解析結果")
+        
+        # 書き込みヘッダー
+        for col_num, value in enumerate(df_all.columns):
+            worksheet.write(0, col_num, value)
+        
+        # データ書き込み（1行ずつ）
+        for row_num, row in enumerate(df_all.itertuples(index=False), start=1):
+            for col_num, cell in enumerate(row):
+                worksheet.write(row_num, col_num, cell)
+        
+        # オートフィルター
+        worksheet.autofilter(0, 0, len(df_all), len(df_all.columns) - 1)
+        
+        # time-taken列だけスタイル適用
+        time_taken_col = df_all.columns.get_loc("time-taken")
+        cell_format = workbook.add_format({"bold": True, "border": 2})
+        worksheet.set_column(time_taken_col, time_taken_col, None, cell_format)
+        
+        workbook.close()
+        
+        st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name=f"{export_name}.xlsx")
+        
