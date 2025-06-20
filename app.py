@@ -21,7 +21,7 @@ st.markdown("""
 # ユーザー入力
 # ----------------------------
 uploaded_file = st.file_uploader("ZIPログファイルをアップロード", type="zip")
-target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1081029, 1092722")
+target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1234567, 1092722")
 export_name = st.text_input("Excel出力ファイル名（.xlsxは不要）", value="parsed_log")
 
 # ----------------------------
@@ -49,27 +49,33 @@ def parse_iis_log(log_text):
     if not all(col in df.columns for col in required_columns):
         return pd.DataFrame()
 
-    df_result = pd.DataFrame({
-        "datetime": df["date"] + " " + df["time"],
-        "Account": df["_RequestID"].str.extract(r"@(.+)$"),
-        "cs-method": df["cs-method"],
-        "cs-uri-stem": df["cs-uri-stem"],
-        "time-taken": df["time-taken"],
-        "cs(User-Agent)": df["cs(User-Agent)"],
-        "cs(Referer)": df["cs(Referer)"],
-        "cs-host": df["cs-host"],
-        "sc-status": df["sc-status"],
-        "_RequestID": df["_RequestID"],
-        "True-Client-IP": df["True-Client-IP"],
-        "_X-SessionID": df["_X-SessionID"],
-        "s-computername": df["s-computername"]
-    })
+    df_result = pd.DataFrame()
+    try:
+        df_result = pd.DataFrame({
+            "datetime": df["date"] + " " + df["time"],
+            "Account": df["_RequestID"].str.extract(r"@(.+)$")[0],
+            "cs-method": df["cs-method"],
+            "cs-uri-stem": df["cs-uri-stem"],
+            "time-taken": df["time-taken"],
+            "cs(User-Agent)": df["cs(User-Agent)"],
+            "cs(Referer)": df["cs(Referer)"],
+            "s-computername": df["s-computername"],
+            "cs-host": df["cs-host"],
+            "sc-status": df["sc-status"],
+            "_RequestID": df["_RequestID"],
+            "True-Client-IP": df["True-Client-IP"],
+            "_X-SessionID": df["_X-SessionID"]
+        })
+    except Exception as e:
+        st.error(f"データ整形中にエラーが発生しました: {e}")
+        return pd.DataFrame()
+
     return df_result
 
 # ----------------------------
 # 実行処理
 # ----------------------------
-if uploaded_file:
+if uploaded_file and st.button("▶ 解析実行"):
     with st.spinner("ZIP解析中..."):
         all_dfs = []
         with zipfile.ZipFile(uploaded_file, "r") as zip_ref:
