@@ -148,6 +148,7 @@ if st.session_state['df_all'] is not None:
         worksheet.conditional_format(1, time_taken_col, len(df_all), time_taken_col, {
             'type': 'no_errors',
             'format': border_format
+        })    
         workbook.close()
 
         st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name=f"{export_name}.xlsx")
