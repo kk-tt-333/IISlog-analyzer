@@ -142,8 +142,12 @@ if st.session_state['df_all'] is not None:
 
         worksheet.autofilter(0, 0, len(df_all), len(df_all.columns) - 1)
         time_taken_col = df_all.columns.get_loc("time-taken")
-        cell_format = workbook.add_format({"bold": True, "border": 2})
+        cell_format = workbook.add_format({"bold": True})  # 太字のみ
+    border_format = workbook.add_format({"top": 2, "bottom": 2, "left": 2, "right": 2})  # 枠線スタイル
         worksheet.set_column(time_taken_col, time_taken_col, None, cell_format)
+        worksheet.conditional_format(1, time_taken_col, len(df_all), time_taken_col, {
+            'type': 'no_errors',
+            'format': border_format
         workbook.close()
 
         st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name=f"{export_name}.xlsx")
