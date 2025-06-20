@@ -86,8 +86,6 @@ if "df" in st.session_state:
         output = io.BytesIO()
         with ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, sheet_name='ParsedLog', index=False)
-            worksheet = writer.sheets['ParsedLog']
-            worksheet.auto_filter.ref = worksheet.dimensions
         st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name="iis_log_output.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     else:
         st.warning("解析結果がありません。ログファイルの内容を確認してください。")
