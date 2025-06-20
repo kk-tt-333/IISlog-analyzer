@@ -23,6 +23,11 @@ st.markdown("""
 # ユーザー入力
 # ----------------------------
 uploaded_file = st.file_uploader("ZIPログファイルをアップロード", type="zip")
+if uploaded_file:
+    st.markdown(
+        f"<span style='color:green; font-size:16px; font-weight:bold;'>✔️ ファイル '{uploaded_file.name}' がアップロードされました</span>",
+        unsafe_allow_html=True
+    )
 target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1234567, 1092722")
 export_name = st.text_input("出力ファイル名（拡張子不要）", value="parsed_log")
 file_type = st.radio("出力形式を選択", ["Excel (.xlsx)", "CSV (.csv)"], captions=["Account指定している場合こちら", "全件出力の場合はこちら"])
@@ -133,7 +138,7 @@ if st.session_state['df_all'] is not None:
         worksheet.autofilter(0, 0, len(df_all), len(df_all.columns) - 1)
         time_taken_col = df_all.columns.get_loc("time-taken")
         cell_format = workbook.add_format({"bold": True, "border": 2})
-        worksheet.set_column(time_taken_col, time_taken_col, None, cell_format)
+        worksheet.set_column(time_taken_col, cell_format)
         workbook.close()
 
         st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name=f"{export_name}.xlsx")
