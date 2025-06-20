@@ -103,9 +103,6 @@ if uploaded_file and st.button("▶ 解析実行"):
                 df_all.to_excel(writer, index=False, sheet_name="ParsedLog")
                 worksheet = writer.sheets["ParsedLog"]
                 worksheet.autofilter(0, 0, df_all.shape[0], df_all.shape[1] - 1)
-                for col_num, value in enumerate(df_all.columns):
-                    if value == "cs(Referer)":
-                        worksheet.write_url(0, col_num, None, string=value)
                 time_taken_col = df_all.columns.get_loc("time-taken")
                 time_format = writer.book.add_format({"bold": True, "border": 2})
                 worksheet.set_column(time_taken_col, time_taken_col, None, time_format)
