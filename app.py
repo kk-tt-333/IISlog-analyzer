@@ -81,8 +81,7 @@ if uploaded_file:
 if "df" in st.session_state:
     df = st.session_state["df"]
     if not df.empty:
-        st.success(f"{len(df)} 行のログを解析しました。下記に内容を表示します。")
-        st.dataframe(df, use_container_width=True)
+        st.success(f"{len(df)} 行のログを解析しました。Excelファイルとして出力できます。")
 
         output = io.BytesIO()
         with ExcelWriter(output, engine='openpyxl') as writer:
