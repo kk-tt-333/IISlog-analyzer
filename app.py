@@ -1,5 +1,5 @@
 # app.py
-# StreamlitでIISログZIPを解析し、指定されたAccountのログをExcel出力するWebアプリ
+# StreamlitでIISログZIPを解析し、指定されたAccountのログをCSVまたはExcelで出力するWebアプリ
 
 import streamlit as st
 import pandas as pd
@@ -16,7 +16,7 @@ st.set_page_config(page_title="IISログ解析ツール", layout="wide")
 st.title("📊 IISログ解析ツール")
 
 st.markdown("""
-#### ZIP形式のIISログをアップロードし、指定したAccountのアクセスログを抽出してExcel出力します。
+#### ZIP形式のIISログをアップロードし、指定したAccountのアクセスログを抽出してファイル出力します。
 """)
 
 # ----------------------------
@@ -24,7 +24,8 @@ st.markdown("""
 # ----------------------------
 uploaded_file = st.file_uploader("ZIPログファイルをアップロード", type="zip")
 target_input = st.text_input("対象のAccountをカンマ区切りで入力（空欄で全件）", placeholder="例: 1234567, 1092722")
-export_name = st.text_input("Excel出力ファイル名（.xlsxは不要）", value="parsed_log")
+export_name = st.text_input("出力ファイル名（拡張子不要）", value="parsed_log")
+file_type = st.radio("出力形式を選択", ["Excel (.xlsx)", "CSV (.csv)"])
 
 # ----------------------------
 # ログ解析関数
@@ -97,29 +98,32 @@ if uploaded_file and st.button("▶ 解析実行"):
                 df_all = df_all[df_all["Account"].isin(accounts)]
 
             st.success(f"{len(df_all)} 件のレコードが見つかりました。")
-
             st.dataframe(df_all.head(5), use_container_width=True)
 
-            output = io.BytesIO()
-            workbook = xlsxwriter.Workbook(output, {'constant_memory': True, 'nan_inf_to_errors': True})
-            worksheet = workbook.add_worksheet("IISログ解析結果")
+            if file_type == "CSV (.csv)":
+                csv_output = io.BytesIO()
+                df_all.to_csv(csv_output, index=False, encoding="utf-8-sig")
+                st.download_button("⬇ CSVファイルをダウンロード", data=csv_output.getvalue(), file_name=f"{export_name}.csv")
 
-            for col_num, value in enumerate(df_all.columns):
-                worksheet.write(0, col_num, str(value))
+            else:
+                output = io.BytesIO()
+                workbook = xlsxwriter.Workbook(output, {'constant_memory': True, 'nan_inf_to_errors': True})
+                worksheet = workbook.add_worksheet("IISログ解析結果")
 
-            for row_num, row in enumerate(df_all.itertuples(index=False), start=1):
-                for col_num, cell in enumerate(row):
-                    val = "" if pd.isnull(cell) or isinstance(cell, float) and (np.isnan(cell) or np.isinf(cell)) else str(cell)
-                    worksheet.write(row_num, col_num, val)
+                for col_num, value in enumerate(df_all.columns):
+                    worksheet.write(0, col_num, str(value))
 
-            worksheet.autofilter(0, 0, len(df_all), len(df_all.columns) - 1)
+                for row_num, row in enumerate(df_all.itertuples(index=False), start=1):
+                    for col_num, cell in enumerate(row):
+                        val = "" if pd.isnull(cell) or isinstance(cell, float) and (np.isnan(cell) or np.isinf(cell)) else str(cell)
+                        worksheet.write(row_num, col_num, val)
 
-            time_taken_col = df_all.columns.get_loc("time-taken")
-            cell_format = workbook.add_format({"bold": True, "border": 2})
-            worksheet.set_column(time_taken_col, time_taken_col, None, cell_format)
+                worksheet.autofilter(0, 0, len(df_all), len(df_all.columns) - 1)
+                time_taken_col = df_all.columns.get_loc("time-taken")
+                cell_format = workbook.add_format({"bold": True, "border": 2})
+                worksheet.set_column(time_taken_col, time_taken_col, None, cell_format)
+                workbook.close()
 
-            workbook.close()
-
-            st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name=f"{export_name}.xlsx")
+                st.download_button("⬇ Excelファイルをダウンロード", data=output.getvalue(), file_name=f"{export_name}.xlsx")
         else:
             st.warning("解析結果が空です。ログ構造または対象Accountをご確認ください。")
